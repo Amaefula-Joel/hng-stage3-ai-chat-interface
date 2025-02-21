@@ -8,6 +8,8 @@ function Chat({ output }) {
 
     const [error, setError] = useState("");
     const [languageDetected, setLanguageDetected] = useState({ sourcelang: "", LangName: "" });
+    const [targetLanguage, setTargetLanguage] = useState('en')
+    const [translatedOutput, setTranslatedOutput] = useState("");
 
     const languageMap = {
         "en": "English",
@@ -183,34 +185,66 @@ function Chat({ output }) {
 
     const translator = () => {
         (async () => {
-            const translatorCapabilities = await window.ai.translator.capabilities();
-            if (translatorCapabilities.available === "no") {
-                setError("The language detector isn't usable.")
-                return;
-            }
-            if (translatorCapabilities.available === "readily") {
-                console.log(output);
+            try {
+                const translatorCapabilities = await self.ai.translator.capabilities();
+                const userSourceLanguage = languageDetected.sourcelang;
+                const userTargetLanguage = targetLanguage;
+                if (translatorCapabilities.available === "no") {
+                    setError("The language detector isn't usable.")
+                    return;
+                }
+                if (translatorCapabilities.available === "readily") {
 
-                const translator = await window.ai.translator.create({
-                    sourceLanguage: languageDetected.sourcelang,
-                    targetLanguage: 'ru',
-                });
-                const translatedText = await translator.translate(output);
-                console.log(translatedText);
-            } else {
-                const translator = await window.ai.translator.create({
-                    sourceLanguage: languageDetected.sourcelang,
-                    targetLanguage: 'fr',
-                    monitor(m) {
-                        m.addEventListener('downloadprogress', (e) => {
-                            console.log(`Downloaded ${e.loaded} of ${e.total} bytes.`);
+
+                    if (translatorCapabilities.languagePairAvailable(userSourceLanguage, userTargetLanguage) === "readily") {
+
+                        const translator = await self.ai.translator.create({
+                            sourceLanguage: userSourceLanguage,
+                            targetLanguage: userTargetLanguage,
                         });
-                    },
-                });
+                        const translatedText = await translator.translate(output);
+                        setTranslatedOutput(translatedText)
+                        console.log(translatedText);
+
+
+                    } else {
+                        const translator = await self.ai.translator.create({
+                            sourceLanguage: userSourceLanguage,
+                            targetLanguage: userTargetLanguage,
+                            monitor(m) {
+                                m.addEventListener('downloadprogress', (e) => {
+                                    console.log(`Downloaded ${e.loaded} of ${e.total} bytes.`);
+                                });
+                            },
+                        });
+                        setError('Language Pair not supported');
+                        return;
+                    }
+
+                } else {
+                    const translator = await self.ai.translator.create({
+                        sourceLanguage: userSourceLanguage,
+                        targetLanguage: userTargetLanguage,
+                        monitor(m) {
+                            m.addEventListener('downloadprogress', (e) => {
+                                console.log(`Downloaded ${e.loaded} of ${e.total} bytes.`);
+                            });
+                        },
+                    });
+                }
+            } catch (error) {
+                console.error(`Error Translating: ${error}`)
+                setError('Try again later');
             }
+
             // console.log(translatorCapabilities.available);
 
         })();
+    }
+
+    function targetLangHandler(event) {
+        const targetLang = event.target.value;
+        setTargetLanguage(targetLang);
     }
 
 
@@ -220,39 +254,55 @@ function Chat({ output }) {
     }, [output]);
 
     return (
-        <div className="mb-8">
+        <div className=" p-3">
 
-            <div className="w-fit md:min-w-sm min-w-max ml-auto pl-6">
+            {/* input text */}
+            <div className="w-fit md:min-w-sm min-w-max ml-auto mb-3 p-4 bg-gray-500 rounded-md">
                 {error && <ErrorAlert error={error} onClose={() => setError("")} />}
 
-                <div className="bg-gray-100 p-3 mb-3 rounded-md">
+                <div className=" mb-3">
                     {/* output text */}
-                    <div className="mb-3">{output}</div>
+                    <div className="mb-3 text-white">{output}</div>
 
-                    {/* detected language */}
                 </div>
 
                 <div className="flex justify-between mb-3 items-center">
-                    <button className="mr-2 px-4 py-2 bg-black hover:bg-transparent border-2 border-transparent hover:border-black hover:text-black text-white rounded-sm  cursor-pointer text-xs font-semibold">Summarize</button>
 
-                    <p className="text-right text-sm text-gray-700 font-semibold"><i className="fa fa-language"></i> {languageDetected.LangName}</p>
+                    {/* detected language */}
+                    <p className="text-right text-[13px] text-white">Detected Languaguage: <i className="fa fa-language"></i> {languageDetected.LangName}</p>
                 </div>
 
-                <div className="flex justify-end">
-                    <button onClick={translator} className="mr-2 px-4 py-2 bg-black hover:bg-transparent border-2 border-transparent hover:border-black hover:text-black text-white rounded-sm  cursor-pointer text-xs font-semibold">
-                        <i className="fa fa-globe"></i>
-                        <span className="ml-1">Translate</span>
-                    </button>
+                <div className="flex justify-between items-center">
 
-                    <select id="" className="bg-blue-500 py-2 px-1 text-white text-xs">
-                        <option value="en">English</option>
-                        <option value="pt">Portuguese</option>
-                        <option value="ru">Russian</option>
-                        <option value="tr">Turkish</option>
-                        <option value="fr">French</option>
-                    </select>
+                    {/* for summarizing not yet implemented*/}
+                    <div>
+                        {/* <button className="mr-2 px-4 py-2 bg-gray-800 text-white rounded-sm  cursor-pointer text-xs font-semibold">Summarize</button> */}
+                    </div>
+
+                    <div>
+                        <select value={targetLanguage} onChange={targetLangHandler} className="border-[1px] hover:ring-1 hover:ring-white py-2 px-1 text-black text-xs mr-2">
+                            <option value="en">English</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="es">Spanish</option>
+                            <option value="ru">Russian</option>
+                            <option value="tr">Turkish</option>
+                            <option value="fr">French</option>
+                        </select>
+
+                        <button onClick={translator} className="px-4 py-2 bg-gray-800 text-white rounded-sm  cursor-pointer text-xs font-semibold">
+                            <i className="fa fa-globe"></i>
+                            <span className="ml-1">Translate</span>
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            {/* translation or summary */}
+            {translatedOutput && (
+                <div className="bg-gray-300 p-3 w-sm">
+                    <p>{translatedOutput}</p>
+                </div>
+            )}
 
         </div>
     )

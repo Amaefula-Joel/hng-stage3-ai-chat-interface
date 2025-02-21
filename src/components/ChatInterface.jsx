@@ -8,34 +8,50 @@ function ChatInterface() {
     const [error, setError] = useState("");
     const inputElement = useRef();
 
+
     const handleOutput = () => {
         const inputText = inputElement.current;
-        // setOutput(inputtext.value);
-        setOutputs((previousState) => [...previousState, inputText.value]);
-
-        inputText.value = '';
-        inputText.focus();
+        if (inputText.value === "") {
+            setError("Field cannot be empty");
+        } else{
+            setOutputs((previousState) => [...previousState, inputText.value]);
+    
+            inputText.value = '';
+            inputText.focus();
+        }
+        
+        // Scroll to bottom after new message
+        // if (chatOutputRef.current) {
+            
+        //     chatOutputRef.current.scrollTop = chatOutputRef.current.scrollHeight;
+        //     console.log(chatOutputRef.current.scrollTop);
+        // }
     }
 
+
+    
     return (
         // container body of the interface
-        <div className="min-h-screen bg-gray-100 sm:pt-20 pt-10 pb-3 px-2 flex justify-center items-center">
+        <div className=" bg-gray-100 pt-3 pb-5 px-2 flex justify-center">
             {/* for errors */}
             {error && <ErrorAlert error={error} onClose={() => setError("")}/>}
                 
-                {/* to test errors */}
+            {/* to test errors */}
             {/* <button onClick={ () => {setError('dhab fdiahbf aodfb ')}} className="px-4 py-2 bg-black text-[13px] text-white rounded-lg cursor-pointer">Summarize</button> */}
 
             {/* interface starts */}
-            <div className="max-w-2xl w-full rounded-lg bg-gray-200 shadow-lg shadow-gray-400">
+            <div className="max-w-2xl w-full rounded-2xl bg-gray-200 shadow-lg shadow-gray-400 grid grid-cols-1 grid-rows-[auto_400px_auto]">
 
                 {/* chat header */}
-                <div className="chat-header text-center bg-black text-white px-2 py-3">
-                    <h2>Ai text interface</h2>
+                <div className="chat-header text-center rounded-t-2xl bg-black text-white px-4 py-5 flex justify-between">
+                    <h2 className="text-xl italic">Ai text interface</h2>
                 </div>
 
                 {/* chat output */}
-                <div className="chat-output p-3 mb-20">
+                <div 
+                    className="chat-output px-3 pb-5 border-b-[1px] overflow-y-auto"
+                >
+
 
                     {outputs.map((output, index) => <Chat key={index} output={output} />)}
 
@@ -48,9 +64,12 @@ function ChatInterface() {
 
                     <button
                         onClick={handleOutput}
+                        
                         className="grow-0 bg-black text-white h-11 w-11 cursor-pointer rounded-lg"><i className="fa fa-send"></i></button>
                 </div>
             </div>
+
+            {/* <div className="chat-output p-3 pb-7 border-2 overflow-x-auto scrollbar "></div> */}
         </div>
     )
 }
