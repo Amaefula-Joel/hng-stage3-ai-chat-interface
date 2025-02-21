@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react"
 
 import ErrorAlert from "./ErrorAlert"; import { source } from "framer-motion/client";
-;
+import LoadingAlert from "./LoadingAlert";
 
 
 function Chat({ output }) {
 
     const [error, setError] = useState("");
+    const [loadingMessage, setLoadingMessage] = useState("");
     const [languageDetected, setLanguageDetected] = useState({ sourcelang: "", LangName: "" });
     const [targetLanguage, setTargetLanguage] = useState('en')
     const [translatedOutput, setTranslatedOutput] = useState("");
+    const [ loading, setLoading ] = useState(false);
 
     const languageMap = {
         "en": "English",
@@ -197,6 +199,9 @@ function Chat({ output }) {
 
 
                     if (translatorCapabilities.languagePairAvailable(userSourceLanguage, userTargetLanguage) === "readily") {
+                        setLoading(true);
+                        setLoadingMessage("Translating...");
+
 
                         const translator = await self.ai.translator.create({
                             sourceLanguage: userSourceLanguage,
@@ -204,6 +209,10 @@ function Chat({ output }) {
                         });
                         const translatedText = await translator.translate(output);
                         setTranslatedOutput(translatedText)
+
+                        setLoading(false);
+                        setLoadingMessage("");
+                        
                         console.log(translatedText);
 
 
@@ -259,6 +268,9 @@ function Chat({ output }) {
             {/* input text */}
             <div className="w-fit md:min-w-sm min-w-max ml-auto mb-3 p-4 bg-gray-500 rounded-md">
                 {error && <ErrorAlert error={error} onClose={() => setError("")} />}
+
+                {/* loading alert */}
+                {loading && <LoadingAlert message={loadingMessage}/>}
 
                 <div className=" mb-3">
                     {/* output text */}
