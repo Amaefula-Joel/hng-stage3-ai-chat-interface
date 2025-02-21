@@ -222,7 +222,7 @@ function Chat({ output }) {
     return (
         <div className="mb-8">
 
-            <div className="w-fit min-w-sm ml-auto pl-6">
+            <div className="w-fit md:min-w-sm min-w-max ml-auto pl-6">
                 {error && <ErrorAlert error={error} onClose={() => setError("")} />}
 
                 <div className="bg-gray-100 p-3 mb-3 rounded-md">

@@ -19,7 +19,7 @@ function ChatInterface() {
 
     return (
         // container body of the interface
-        <div className="min-h-screen bg-gray-100 sm:py-20 py-10 px-2 flex justify-center items-center">
+        <div className="min-h-screen bg-gray-100 sm:pt-20 pt-10 pb-3 px-2 flex justify-center items-center">
             {/* for errors */}
             {error && <ErrorAlert error={error} onClose={() => setError("")}/>}
                 
