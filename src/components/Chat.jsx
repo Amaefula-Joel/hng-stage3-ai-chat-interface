@@ -6,12 +6,14 @@ import LoadingAlert from "./LoadingAlert";
 
 function Chat({ output }) {
 
+    const [processedOutput, setProcessedOutput] = useState(output);
+
     const [error, setError] = useState("");
     const [loadingMessage, setLoadingMessage] = useState("");
     const [languageDetected, setLanguageDetected] = useState({ sourcelang: "", LangName: "" });
     const [targetLanguage, setTargetLanguage] = useState('en')
     const [translatedOutput, setTranslatedOutput] = useState("");
-    const [ loading, setLoading ] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     const languageMap = {
         "en": "English",
@@ -34,156 +36,46 @@ function Chat({ output }) {
         "la": "Latin"
     };
 
-    const getLanguageName = (langCode) => languageMap[langCode] || "Unknown Language";
+    const getLanguageName = (langCode) => languageMap[langCode] || languageMap[langCode];
 
     const detectLanguage = () => {
 
         (async () => {
-            const languageDetectorCapabilities = await self.ai.languageDetector.capabilities();
-            const canDetect = languageDetectorCapabilities.available;
-            let detector;
-            if (canDetect === 'no') {
-                setError("The language detector isn't usable.")
-                return;
-            }
-            if (canDetect === 'readily') {
-                // The language detector can immediately be used.
-                detector = await self.ai.languageDetector.create();
+            try {
 
-                const results = await detector.detect(output);
+                const languageDetectorCapabilities = await self.ai.languageDetector.capabilities();
+                const canDetect = languageDetectorCapabilities.available;
+                let detector;
+                if (canDetect === 'no') {
+                    setError("The language detector isn't usable.")
+                    return;
+                }
+                if (canDetect === 'readily') {
+                    // The language detector can immediately be used.
+                    detector = await self.ai.languageDetector.create();
 
-                // console.log(results[0]);
+                    const results = await detector.detect(processedOutput);
 
-                setLanguageDetected({ sourcelang: results[0].detectedLanguage, LangName: getLanguageName(results[0].detectedLanguage) });
-            } else {
-                setError("The language detector can be used after model download.")
+                    // console.log(results[0]);
 
-                detector = await self.ai.languageDetector.create({
-                    monitor(m) {
-                        m.addEventListener('downloadprogress', (e) => {
-                            console.log(`Downloaded ${e.loaded} of ${e.total} bytes.`);
-                        });
-                    },
-                });
-                await detector.ready;
+                    setLanguageDetected({ sourcelang: results[0].detectedLanguage, LangName: getLanguageName(results[0].detectedLanguage) });
+                } else {
+                    setError("The language detector can be used after model download.")
+
+                    detector = await self.ai.languageDetector.create({
+                        monitor(m) {
+                            m.addEventListener('downloadprogress', (e) => {
+                                console.log(`Downloaded ${e.loaded} of ${e.total} bytes.`);
+                            });
+                        },
+                    });
+                    await detector.ready;
+                }
+            } catch (error) {
+                setError(`error Detecting Language: ${error}`);
             }
         })();
     }
-
-    // trial 1
-    /* const translator = async () => {
-        try {
-            const translatorCapabilities = await window.ai.translator.capabilities();
-
-            if (translatorCapabilities.available === "no") {
-                setError("The translator isn't usable.");
-                return;
-            }
-
-            const sourceLang = languageDetected.sourcelang; // Source language detected
-            const targetLang = "es"; // Change this to any target language
-            const textToTranslate = output; // The text you want to translate
-
-            console.log(`Attempting to translate from ${sourceLang} to ${targetLang}...`);
-
-            // Check if the language pair is supported
-            const isPairSupported = translatorCapabilities.supportedPairs.some(
-                (pair) => pair.source === sourceLang && pair.target === targetLang
-            );
-
-            if (!isPairSupported) {
-                setError(`Translation from ${sourceLang} to ${targetLang} is not supported.`);
-                return;
-            }
-
-            // Proceed with translation
-            if (translatorCapabilities.available === "readily") {
-                const translator = await window.ai.translator.create({
-                    sourceLanguage: sourceLang,
-                    targetLanguage: targetLang,
-                });
-
-                const translatedText = await translator.translate(textToTranslate);
-                console.log(`Translated Text: ${translatedText}`);
-            } else {
-                // Handle downloading of missing models
-                console.log(`Model for ${sourceLang} → ${targetLang} needs downloading...`);
-                const translator = await window.ai.translator.create({
-                    sourceLanguage: sourceLang,
-                    targetLanguage: targetLang,
-                    monitor(m) {
-                        m.addEventListener("downloadprogress", (e) => {
-                            console.log(`Downloaded ${e.loaded} of ${e.total} bytes.`);
-                        });
-                    },
-                });
-            }
-        } catch (error) {
-            console.error("Translation failed:", error);
-            setError("Translation error. Please try again.");
-        }
-    }; */
-
-
-    /* const translator = async () => {
-        try {
-            const translatorCapabilities = await window.ai.translator.capabilities();
-
-            if (translatorCapabilities.available === "no") {
-                setError("The translator isn't usable.");
-                return;
-            }
-
-            const sourceLang = languageDetected?.sourcelang; // Ensure source language exists
-            const targetLang = "en"; // Change this if needed
-            const textToTranslate = output; // The text you want to translate
-
-            console.log(`Attempting to translate from ${sourceLang} to ${targetLang}...`);
-
-            // ✅ Check if `supportedPairs` exists before accessing it
-            if (!translatorCapabilities.supportedPairs || !Array.isArray(translatorCapabilities.supportedPairs)) {
-                setError("Translation capabilities are unavailable.");
-                return;
-            }
-
-            // ✅ Check if the language pair is supported
-            const isPairSupported = translatorCapabilities.supportedPairs.some(
-                (pair) => pair.source === sourceLang && pair.target === targetLang
-            );
-
-            if (!isPairSupported) {
-                setError(`Translation from ${sourceLang} to ${targetLang} is not supported.`);
-                return;
-            }
-
-            // ✅ Proceed with translation
-            if (translatorCapabilities.available === "readily") {
-                const translator = await window.ai.translator.create({
-                    sourceLanguage: sourceLang,
-                    targetLanguage: targetLang,
-                });
-
-                const translatedText = await translator.translate(textToTranslate);
-                console.log(`Translated Text: ${translatedText}`);
-            } else {
-                // ✅ Handle downloading of missing models
-                console.log(`Model for ${sourceLang} → ${targetLang} needs downloading...`);
-                const translator = await window.ai.translator.create({
-                    sourceLanguage: sourceLang,
-                    targetLanguage: targetLang,
-                    monitor(m) {
-                        m.addEventListener("downloadprogress", (e) => {
-                            console.log(`Downloaded ${e.loaded} of ${e.total} bytes.`);
-                        });
-                    },
-                });
-            }
-        } catch (error) {
-            console.error("Translation failed:", error);
-            setError("Translation error. Please try again.");
-        }
-    }; */
-
 
     const translator = () => {
         (async () => {
@@ -207,12 +99,12 @@ function Chat({ output }) {
                             sourceLanguage: userSourceLanguage,
                             targetLanguage: userTargetLanguage,
                         });
-                        const translatedText = await translator.translate(output);
+                        const translatedText = await translator.translate(processedOutput);
                         setTranslatedOutput(translatedText)
 
                         setLoading(false);
                         setLoadingMessage("");
-                        
+
                         console.log(translatedText);
 
 
@@ -243,14 +135,45 @@ function Chat({ output }) {
                 }
             } catch (error) {
                 console.error(`Error Translating: ${error}`)
-                setError('Try again later');
+                setError(`Error Translating: ${error}`);
             }
-
-            // console.log(translatorCapabilities.available);
 
         })();
     }
 
+    async function summarise(longText) {
+        try {
+            const summarizerCapabilities = await self.ai.summarizer.capabilities();
+            const canSummarize = summarizerCapabilities.available;
+            let summarizer;
+
+            if (canSummarize === 'no') {
+                console.warn(
+                    "The current browser supports the Summarizer API, but it can't be used at the moment. Check the available disk space"
+                );
+                return;
+            }
+            if (canSummarize === 'after-download') {
+                console.log('Downloading translation model...');
+                summarizer = await self.ai.summarizer.create({
+                    monitor(m) {
+                        m.addEventListener('downloadprogress', (e) => {
+                            console.log(`Downloaded ${e.loaded} of ${e.total} bytes.`);
+                        });
+                    },
+                });
+                await summarizer.ready;
+            } else {
+                summarizer = await self.ai.summarizer.create();
+            }
+
+            return await summarizer.summarize(longText);
+        } catch (error) {
+            setError("error summarizing");
+        }
+    }
+
+    // summarise("Frontend programming is the process of building the user interface and user experience of a website or web application using programming languages like HTML, CSS, and JavaScript. It involves creating the visual aspects of a website, including the layout, colors, and typography, as well as the interactive elements, such as buttons, forms, and animations. Frontend developers use various tools and frameworks, such as React, Angular, and Vue.js, to build responsive and dynamic web applications that provide a seamless user experience. They must also ensure that the website is accessible and usable on different devices and browsers. With the rise of mobile devices and the increasing demand for online services, frontend programming has become a crucial aspect of web development. It requires a combination of technical skills, creativity, and attention to detail to create visually appealing and user-friendly interfaces that meet the needs of users. Effective frontend programming can make a significant difference in the success of a website or web application, as it directly impacts the user experience and engagement. Frontend programming is a constantly evolving field, with new technologies and techniques emerging regularly, making it an exciting and challenging career path for developers. provide a seamless user experience. They must also ensure that the website is accessible and usable on different devices and browsers. With the rise of mobile devices and the increasing demand for online services, frontend programming has become a crucial aspect of web development. It requires a combination of technical skills, creativity, and attention to detail to create visually appealing and user-friendly interfaces that meet the needs of users. Effective frontend programming can make a significant difference in the success of a website or web application");
     function targetLangHandler(event) {
         const targetLang = event.target.value;
         setTargetLanguage(targetLang);
@@ -270,11 +193,11 @@ function Chat({ output }) {
                 {error && <ErrorAlert error={error} onClose={() => setError("")} />}
 
                 {/* loading alert */}
-                {loading && <LoadingAlert message={loadingMessage}/>}
+                {loading && <LoadingAlert message={loadingMessage} />}
 
                 <div className=" mb-3">
                     {/* output text */}
-                    <div className="mb-3 text-white">{output}</div>
+                    <div className="mb-3 text-white">{processedOutput}</div>
 
                 </div>
 
